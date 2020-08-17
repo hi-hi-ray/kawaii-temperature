@@ -93,8 +93,8 @@ def main():
     dp = updater.dispatcher
     dp.add_handler(CommandHandler('start', start_bot))
     dp.add_handler(CommandHandler('commands', command_list))
-    # dp.add_handler(CommandHandler('now', get_temperature_now))
-    # dp.add_handler(CommandHandler('windchill', get_wind_chill))
+    dp.add_handler(CommandHandler('now', get_temperature_now))
+    dp.add_handler(CommandHandler('windchill', get_wind_chill))
     dp.add_handler(CommandHandler('history', get_week_history))
     updater.start_polling()
     updater.idle()
