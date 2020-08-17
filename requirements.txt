@@ -1,0 +1,6 @@
+peewee
+requests
+Adafruit_Python_DHT
+RPi.GPIO
+PyTelegramBotAPI==2.2.3
+python-telegram-bot
