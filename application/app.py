@@ -1,7 +1,7 @@
 import request_weather_api as external_api
 from models import Temperature as temp_db
-# import sensor as dht11
-# import led
+import sensor as dht11
+import led
 import json
 import math
 import datetime
@@ -9,14 +9,14 @@ from telegram.ext import Updater, CommandHandler
 
 
 def start_bot(update, context):
-  message_people = 'Olá {} me chamo o Kawaii Temperature.\n Envie o comando /commands para saber todos os commands que eu possuo.\n Esse é um projeto de Bloco da https://github.com/hi-hi-ray'.format(update.message.from_user.first_name)
+  message_people = 'Olá {} me chamo o Kawaii Temperature.\n Envie o comando /commands para saber todos os commands que eu possuo.\n Esse é um projeto de Bloco da https://github.com/hi-hi-ray. A medição de sensação térmica pode variar tendo em vista que o sensor de vento está em um local diferente de onde está o sensor de humidade e temperatura.'.format(update.message.from_user.first_name)
   led.flashing_light()
   print(update.message.from_user.first_name)
   update.message.reply_text(message_people)
 
 
 def command_list(update, context):
-  message_people = 'Olá {}, \n Então os comandos que temos disponíveis são: \n /now - Traz a umidade e temperatura em tempo real. \n /history - Traz o Histórico de medição da semana. \n /windchill - Traz a sensação térmica'.format(update.message.from_user.first_name)
+  message_people = 'Olá {}, \n Então os comandos que temos disponíveis são: \n /now - Traz a umidade e temperatura em tempo real. \n /mean - Traz a média da medição da semana. \n /windchill - Traz a sensação térmica'.format(update.message.from_user.first_name)
   led.flashing_light()
   print(update.message.from_user.first_name)
   update.message.reply_text(message_people)
@@ -70,22 +70,30 @@ def calculate_wind_chill(temperature, wind):
 
 
 def get_week_history(update, context):
-  # led.flashing_light()
+  led.flashing_light()
   print(update.message.from_user.first_name)
-  # message_temp = 'Olá a umidade é {} e a temperatura é {}.'.format(humidity, temperature)
-  # led.flashing_light()
-  calcule_median_temp_and_humity()
-  update.message.reply_text(calcule_median_temp_and_humity())
+  led.flashing_light()
+  temperature_mean, humidity_mean, quantity = calcule_median_temp_and_humity()
+  message_temp = 'Olá {}! \n Teve nessa semana {} medições, a média de umidade da semana é de aproximadamente {} e a média de temperatura da semana é de aproximadamente {}.'.format(update.message.from_user.first_name, quantity, humidity_mean, temperature_mean)
+  update.message.reply_text(message_temp)
 
 
 def calcule_median_temp_and_humity():
   now = datetime.datetime.now()
   then = now - datetime.timedelta(days=7)
-  query = temp_db.select().where(temp_db.timestamp.between(str(datetime.datetime.timestamp(now)), str(datetime.datetime.timestamp(then))))
-  result = query.execute()
-  print(result)
-  jsono = json.loads(result)
-  return jsono
+  query = temp_db.select()
+  temps = []
+  humids = []
+  # Gambiarra mode para não zerar o banco.
+  for register in query:
+    if float(datetime.datetime.timestamp(then)) <= float(register.timestamp) <= float(datetime.datetime.timestamp(now)):
+      temps.append(register.sensor_temperature)
+      humids.append(register.sensor_humidity)
+
+  temperature_mean = round((sum(temps) / len(temps)), 2)
+  humidity_mean = round((sum(humids) / len(humids)), 2)
+  quantity = (len(temps))    
+  return temperature_mean, humidity_mean, quantity
 
 
 def main():
@@ -95,7 +103,7 @@ def main():
     dp.add_handler(CommandHandler('commands', command_list))
     dp.add_handler(CommandHandler('now', get_temperature_now))
     dp.add_handler(CommandHandler('windchill', get_wind_chill))
-    dp.add_handler(CommandHandler('history', get_week_history))
+    dp.add_handler(CommandHandler('mean', get_week_history))
     updater.start_polling()
     updater.idle()
 
